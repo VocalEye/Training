@@ -1,10 +1,10 @@
 
+from src.models.InceptionV3.InceptionV3 import Inception
 from src.models.EfficientNetAdam.EfficientNetAdam import EfficientNetAdam
 from src.models.EfficientNet.EfficientNet import EfficientNet
 from src.models.ResNetAdam.ResNetAdam import ResNetAdam
 from src.models.ResNet.ResNet import ResNet
 from src.models.AlexNet.AlexNet import AlexNet
-from src.models.GoogLeNet.MiniGoogleNet import MiniGoogleNet
 from sklearn.model_selection import train_test_split
 import numpy as np
 from src.utils.loadDataset import loadDataset
@@ -16,12 +16,20 @@ import datetime
 import os
 from numpy import random
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+from keras import backend as K
 
 np.random.seed(1000)
 
+DEFAULT_TEST = [
+    {
+        "dataset": './input/test/Dataset 2 - Test/',
+        "classSample": None
+    }
+]
+
 DEFAULT_VALUES = {
-    "imageSize": (32, 32, 1),
-    "batchSize": 64,
+    "imageSize": (75, 75, 1),
+    "batchSize": 128,
     "epochSize": 100,
     "learningRate": 5e-3,
     "augmentation": {
@@ -30,41 +38,11 @@ DEFAULT_VALUES = {
         "height_shift_range": 0.1,
         "fill_mode": "nearest"
     },
-    "tests": []
+    "tests": DEFAULT_TEST
 }
 
-DEFAULT_TEST = [
-    {
-        "dataset": './input/test/Dataset 1/',
-        "classSample": None
-    },
-    {
-        "dataset": './input/test/Dataset 2/',
-        "classSample": None
-    },
-    {
-        "dataset": './input/test/Dataset 3/',
-        "classSample": None
-    },
-    {
-        "dataset": './input/test/Real Test 1/',
-        "classSample": 30
-    },
-    {
-        "dataset": './input/test/Real Test 2/',
-        "classSample": None
-    },
-    {
-        "dataset": './input/test/Real Test 3/',
-        "classSample": None
-    },
-    {
-        "dataset": './input/test/Real Test 4/',
-        "classSample": None
-    }
-]
 
-NUMBER_PROCESSES = 10
+NUMBER_PROCESSES = 20
 FILENAME = './input/results.csv'
 CLASS_SAMPLE = None
 INPUTS = {}
@@ -72,32 +50,44 @@ INPUTS = {}
 def loadInputs():
     global INPUTS
     cases = []
-    for i in range(10):
-        learningRate = random.uniform(0, 1)
-        copied = DEFAULT_VALUES.copy()
-        copied["learningRate"] = learningRate
-        copied["batchSize"] = 256
-        copied["tests"] = DEFAULT_TEST
-        copied["model"] = "ResNet"
-        cases.append(copied)
+    imageSize = (75, 75, 1)
 
-        learningRate = random.uniform(0, 1)
-        copied = DEFAULT_VALUES.copy()
-        copied["learningRate"] = learningRate
-        copied["batchSize"] = 256
-        copied["tests"] = DEFAULT_TEST
-        copied["model"] = "EfficientNet"
-        cases.append(copied)
+    copied = DEFAULT_VALUES.copy()
+    copied["learningRate"] = 0.040709624769089126
+    copied["batchSize"] = 128
+    copied["imageSize"] = imageSize
+    copied["model"] = "Inception"
+    cases.append(copied)
 
     INPUTS["./input/train/Dataset 2/"] = cases
-    INPUTS["./input/train/Dataset 4/"] = cases
 
 OUTPUT = './output/models/'
 TEST_INPUT = '' # './input/test/Real Test/'
 LOGS_OUTPUT = "./output/logs/fit/"
 
 def getModelInstance(configuration):
-    if(configuration["model"] == "ResNet"):
+    if(configuration["model"] == "AlexNet"):
+        return AlexNet(
+                inputShape = configuration["imageSize"], 
+                classes = 9, 
+                batchSize = configuration["batchSize"],
+                epochs = configuration["epochSize"],
+                learningRate = configuration["learningRate"],
+                augmentations = configuration["augmentation"],
+                logsOutput = LOGS_OUTPUT
+            )
+    if(configuration["model"] == "Inception"):
+        return Inception(
+                inputShape = configuration["imageSize"], 
+                classes = 9, 
+                batchSize = configuration["batchSize"],
+                epochs = configuration["epochSize"],
+                learningRate = configuration["learningRate"],
+                augmentations = configuration["augmentation"],
+                momentum = 0.9,
+                logsOutput = LOGS_OUTPUT
+            )
+    elif(configuration["model"] == "ResNet"):
         return ResNet(
                 inputShape = configuration["imageSize"], 
                 classes = 9, 
@@ -206,4 +196,5 @@ if __name__ == '__main__':
                 
                 del model, testsResults
                 gc.collect()
+                K.clear_session()
             previousDataset = dataset
